@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiBait</title>
+    
+<style>
+    body {
+        background-color: #101827;
+        color: #f1f5f9;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 40px;
+    }
+
+    h1 {
+        color: #5eead4;
+        text-align: center;
+    }
+
+    p {
+        color: #cbd5e1;
+        font-size: 18px;
+         text-align: center;
+    }
+    
+    .dashboard {
+        background-color: #1e293b;
+        padding: 30px;
+        border-radius: 16px;
+        max-width: 700px;
+        margin: 40px auto;
+        border: 1px solid #334155;
+    }
+    .status {
+    background-color: #064e3b;
+    color: #6ee7b7;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 14px;
+    border: 1px solid #10b981;
+}
+
+#scanButton {
+    display: block;
+    width: 100%;
+    margin-top: 15px;
+    padding: 14px;
+    background-color: #0d9488;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#messageInput {
+    width: 100%;
+    height: 120px;
+    box-sizing: border-box;
+    padding: 12px;
+    background-color: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    border-radius: 8px;
+    font-size: 15px;
+    resize: vertical;
+    outline: none;
+}
+#result {
+    margin-top: 20px;
+    padding: 16px;
+    background-color: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    color: #cbd5e1;
+    font-size: 15px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+.risk-high {
+    color: #f87171;
+    font-weight: bold;
+}
+
+.risk-medium {
+    color: #fbbf24;
+    font-weight: bold;
+}
+
+.risk-low {
+    color: #6ee7b7;
+    font-weight: bold;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="dashboard">
+    <h1>AntiBait</h1>
+    <p>Check suspicious messages and links before you click.</p>
+    <p class="status">🛡️ Security Scanner Ready</p>
+    
+<textarea id="messageInput" placeholder="Enter a suspicious message or website link here..."></textarea>
+<button id="scanButton">Scan for Threats</button>
+<div id="result"></div>
+<h2>Analyze a Message or Website Link</h2>
+
+
+</div>
+
+<script>
+
+const scanButton = document.getElementById("scanButton");
+const messageInput = document.getElementById("messageInput");
+const result = document.getElementById("result");
+messageInput.onkeydown = function (event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        scanButton.click();
+    }
+};
+scanButton.addEventListener("click", function () {
+    const message = messageInput.value.trim().toLowerCase();
+
+    if (message === "") {
+        result.textContent = "Please enter a message or website link to scan.";
+        return;
+    }
+
+    const warningSigns = [];
+    const prizePhrases = [
+    "you have won",
+    "you won a prize",
+    "claim your reward",
+    "you are a lucky winner",
+    "free gift",
+    "lottery winner",
+    "congratulations, you won"
+];
+
+if (prizePhrases.some(phrase => message.includes(phrase))) {
+    warningSigns.push(
+        "The message claims you have won a prize or reward. Unexpected prizes may be used to lure people into scams, especially when payment or personal information is requested."
+    );
+}
+    const urlPattern = /https?:\/\/[^\s]+/g;
+const links = message.match(urlPattern) || [];
+
+
+if (
+    links.some(link =>
+        link.includes("@") ||
+        link.includes(" ") ||
+        link.startsWith("http://") ||
+        /https?:\/\/(bit\.ly|tinyurl\.com|t\.co|is\.gd)\//i.test(link)
+    )
+) {
+    warningSigns.push(
+        "The message contains a link with potentially suspicious characteristics, such as a shortened URL or an insecure HTTP link."
+    );
+}
+
+
+    const urgencyPhrases = [
+        "act now",
+        "immediately",
+        "within 24 hours",
+        "account will be blocked",
+        "urgent action required"
+    ];
+
+    if (urgencyPhrases.some(phrase => message.includes(phrase))) {
+        warningSigns.push(
+            "The message pressures you to act quickly."
+        );
+    }
+
+    if (
+        message.includes("processing fee") ||
+        message.includes("pay a fee") ||
+        message.includes("claim fee")
+    ) {
+        warningSigns.push(
+            "The message requests a fee to claim something."
+        );
+    }
+
+    if (
+        message.includes("share your otp") ||
+        message.includes("enter your otp") ||
+        message.includes("share your password") ||
+        message.includes("bank account details") ||
+message.includes("verify your otp") ||
+message.includes("send me your otp") ||
+message.includes("enter otp") ||
+message.includes("confirm your password") ||
+message.includes("share your pin") ||
+message.includes("debit card details") ||
+message.includes("credit card details")
+    ) {
+        warningSigns.push(
+            "The message requests sensitive personal or banking information."
+        );
+    }
+let riskLevel = "LOW";
+
+const hasSensitiveInfoWarning = warningSigns.some(sign =>
+    sign.includes("sensitive personal or banking information")
+);
+
+const hasFeeWarning = warningSigns.some(sign =>
+    sign.includes("requests a fee")
+);
+
+if (
+    warningSigns.length >= 3 ||
+    (hasSensitiveInfoWarning && hasFeeWarning)
+) {
+    riskLevel = "HIGH";
+} else if (warningSigns.length >= 1) {
+    riskLevel = "MEDIUM";
+}
+    if (warningSigns.length > 0) {
+        result.innerHTML = `
+            <h3>⚠️ Warning Signs Found</h3>
+<h3>Risk Level: <span class="risk-${riskLevel.toLowerCase()}">${riskLevel}</span></h3>
+            <ul>
+                ${warningSigns.map(sign => `<li>${sign}</li>`).join("")}
+            </ul>
+            <p><strong>What to do:</strong> Stop and verify the message before taking action. Do not click suspicious links, pay unexpected fees, or share OTPs, passwords, or banking details. Contact the organisation using its official website or a trusted phone number.</p>
+        `;
+    } else {
+         result.innerHTML = `
+    <h3>No Warning Signs Detected</h3>
+    <h3>Risk Level: <span class="risk-low">LOW</span></h3>
+    <p>No warning signs were found in this message. This does not guarantee it is safe.</p>
+`;
+    }
+});
+
+
+ 
+
+
+
+
+
+</script>
+
+</body>
+</html>
